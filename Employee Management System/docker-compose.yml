@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # 1. DATABASE LAYER (MongoDB Engine)
+  mongodb:
+    image: mongo:6.0
+    container_name: ems_mongodb_container
+    ports:
+      - "27017:27017"
+    volumes:
+      - ems-db-volume:/data/db
+    networks:
+      - secure-backend-net
+
+  # 2. APPLICATION CORE ENGINE (Node.js API)
+  backend:
+    build: ./backend
+    container_name: ems_backend_container
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    networks:
+      - secure-backend-net
+      - public-frontend-net
+
+  # 3. INTERFACE VISUAL LAYER (Nginx Web Server)
+  frontend:
+    build: ./frontend
+    container_name: ems_frontend_container
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - public-frontend-net
+
+# Network Separation Policies
+networks:
+  public-frontend-net:
+    driver: bridge
+  secure-backend-net:
+    driver: bridge
+
+# Permanent Data Backup Storage
+volumes:
+  ems-db-volume:
+    driver: local

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Management System (EMS)</title>
+    <!-- Simple Custom CSS Framework styling for rendering components -->
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; color: #333; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-b: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        .hidden { display: none !important; }
+        .auth-box { max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background: #fff; }
+        .tabs { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .tab-btn { background: none; border: none; font-size: 16px; font-weight: bold; cursor: pointer; color: gray; }
+        .tab-btn.active { color: blue; border-bottom: 2px solid blue; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { padding: 10px 15px; background: blue; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+        .btn-danger { background: red; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #fafafa; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .action-btn { padding: 4px 8px; margin-right: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- TOP NAVBAR -->
+    <div class="header">
+        <h2>🏢 EMS Platform</h2>
+        <div id="userBadge" class="hidden">
+            <span>User: <strong id="userText"></strong></span>
+            <button onclick="logout()" class="action-btn" style="background:red; color:white; border:none; padding:5px 10px; border-radius:4px;">Logout</button>
+        </div>
+    </div>
+
+    <!-- 1. LOGIN / SIGNUP BOX -->
+    <div id="authBox" class="auth-box">
+        <div class="tabs">
+            <button onclick="switchAuth('login')" id="btnLoginTab" class="tab-btn active">Login</button>
+            <button onclick="switchAuth('signup')" id="btnSignupTab" class="tab-btn">Sign Up</button>
+        </div>
+        <form onsubmit="handleAuth(event)">
+            <div class="form-group">
+                <label>Email or Mobile Number</label>
+                <input id="authId" type="text" required placeholder="example@mail.com or 9876xxxxxx">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input id="authPass" type="password" required>
+            </div>
+            <div id="roleDiv" class="hidden form-group">
+                <label>Select Role</label>
+                <select id="authRole">
+                    <option value="Employee">Employee</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            <button type="submit" id="authBtn" class="btn">Sign In</button>
+        </form>
+    </div>
+
+    <!-- 2. MAIN DASHBOARD CONTENT -->
+    <div id="dashboard" class="hidden">
+        
+        <!-- ====== ADMIN ONLY PANEL ====== -->
+        <div id="adminView" class="hidden">
+            <div class="grid">
+                <!-- Add/Update Employee Form -->
+                <div class="panel">
+                    <h3 id="formModeTitle">➕ Register Employee</h3>
+                    <form onsubmit="handleEmployeeSubmit(event)" id="empForm">
+                        <input type="hidden" id="editEmpId">
+                        <div class="form-group"><label>Full Name</label><input id="empName" type="text" required></div>
+                        <div class="form-group"><label>Email</label><input id="empEmail" type="email" required></div>
+                        <div class="form-group"><label>Mobile</label><input id="empMobile" type="text" required></div>
+                        <div class="form-group"><label>Department</label><input id="empDept" type="text" required placeholder="e.g. IT, HR"></div>
+                        <div class="form-group"><label>Designation</label><input id="empDesig" type="text" required placeholder="e.g. Developer"></div>
+                        <div class="form-group"><label>Base Salary (₹)</label><input id="empSalary" type="number" required></div>
+                        <button type="submit" id="empBtn" class="btn">Save Employee</button>
+                    </form>
+                </div>
+
+                <!-- Salary Slip Creator Form -->
+                <div class="panel">
+                    <h3>💰 Generate Salary Slip</h3>
+                    <form onsubmit="handleSalarySubmit(event)">
+                        <div class="form-group">
+                            <label>Select Employee</label>
+                            <select id="salaryDropdown"></select>
+                        </div>
+                        <div class="form-group"><label>Month</label><input id="salaryMonth" type="month" required></div>
+                        <div class="form-group"><label>Allowances (₹)</label><input id="salaryAllow" type="number" value="0"></div>
+                        <div class="form-group"><label>Deductions (₹)</label><input id="salaryDeduct" type="number" value="0"></div>
+                        <button type="submit" class="btn" style="background:green;">Process Salary</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Master Table View -->
+            <h3>📋 Registered Employees Directory</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact</th>
+                        <th>Dept / Role</th>
+                        <th>Base Salary</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="masterTable"></tbody>
+            </table>
+        </div>
+
+        <!-- ====== EMPLOYEE ONLY PANEL ====== -->
+        <div id="employeeView" class="hidden panel">
+            <h3>📊 Your Salary Slip History</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Net Payout (₹)</th>
+                        <th>Processed Date</th>
+                    </tr>
+                </thead>
+                <tbody id="personalTable"></tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+<script>
+    const API = 'https://supreme-chainsaw-77965gwpgvj92w67v-5000.app.github.dev/api';
+    let currentAuthMode = 'login';
+    let employeesList = [];
+
+    // Login aur Sign up interfaces badalne ke liye toggle operation
+    function switchAuth(mode) {
+        currentAuthMode = mode;
+        document.getElementById('roleDiv').classList.toggle('hidden', mode === 'login');
+        document.getElementById('authBtn').innerText = mode === 'login' ? 'Sign In' : 'Create Account';
+        document.getElementById('btnLoginTab').className = mode === 'login' ? 'tab-btn active' : 'tab-btn';
+        document.getElementById('btnSignupTab').className = mode === 'signup' ? 'tab-btn active' : 'tab-btn';
+    }
+
+    // Backend Auth APIs ko call karna login trigger karne ke liye
+    async function handleAuth(e) {
+        e.preventDefault();
+        const identity = document.getElementById('authId').value;
+        const password = document.getElementById('authPass').value;
+        const role = document.getElementById('authRole').value;
+
+        const url = currentAuthMode === 'login' ? '/auth/login' : '/auth/signup';
+        const body = currentAuthMode === 'login' ? { identity, password } : { identity, password, role };
+
+        try {
+            const res = await fetch(API + url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+
+            if(!res.ok) return alert(data.error);
+
+            if(currentAuthMode === 'signup') {
+                alert('Registration done! Please Login now.');
+                switchAuth('login');
+            } else {
+                localStorage.setItem('user', data.identity);
+                localStorage.setItem('role', data.role);
+                checkUIState();
+            }
+        } catch(err) { alert('Backend Server Offline!'); }
+    }
+
+    // Yeh check karta hai ki logged-in user admin hai ya standard employee
+    function checkUIState() {
+        const user = localStorage.getItem('user');
+        const role = localStorage.getItem('role');
+
+        if(!user) {
+            document.getElementById('authBox').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('userBadge').classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('authBox').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('userBadge').classList.remove('hidden');
+        document.getElementById('userText').innerText = user;
+
+        if(role === 'Admin') {
+            document.getElementById('adminView').classList.remove('hidden');
+            document.getElementById('employeeView').classList.add('hidden');
+            loadAdminData();
+        } else {
+            document.getElementById('employeeView').classList.remove('hidden');
+            document.getElementById('adminView').classList.add('hidden');
+            loadEmployeeData(user);
+        }
+    }
+
+    // Master list fetch karke HTML tables populate karna
+    async function loadAdminData() {
+        try {
+            const res = await fetch(API + '/employees');
+            const list = await res.json();
+            employeesList = list;
+
+            const table = document.getElementById('masterTable');
+            const dropdown = document.getElementById('salaryDropdown');
+            table.innerHTML = dropdown.innerHTML = '';
+
+            list.forEach(emp => {
+                table.innerHTML += `<tr>
+                    <td><b>${emp.name}</b></td>
+                    <td>Email: ${emp.email}<br>Mob: ${emp.mobile}</td>
+                    <td>${emp.dept} (${emp.designation})</td>
+                    <td style="color:green; font-weight:bold;">₹${emp.baseSalary}</td>
+                    <td>
+                        <button onclick="editEmployee('${emp._id}')" class="action-btn" style="background:orange; color:white; border:none; padding:3px 8px; border-radius:3px;">Edit</button>
+                        <button onclick="deleteEmployee('${emp._id}')" class="action-btn" style="background:red; color:white; border:none; padding:3px 8px; border-radius:3px;">Delete</button>
+                    </td>
+                </tr>`;
+                dropdown.innerHTML += `<option value="${emp._id}">${emp.name}</option>`;
+            });
+        } catch(e){}
+    }
+
+    // Naya record add karna ya existing employee ko update karna
+    async function handleEmployeeSubmit(e) {
+        e.preventDefault();
+        const id = document.getElementById('editEmpId').value;
+        const body = {
+            name: document.getElementById('empName').value,
+            email: document.getElementById('empEmail').value,
+            mobile: document.getElementById('empMobile').value,
+            dept: document.getElementById('empDept').value,
+            designation: document.getElementById('empDesig').value,
+            salary: document.getElementById('empSalary').value
+        };
+
+        const url = id ? `/employees/${id}` : '/employees';
+        await fetch(API + url, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        document.getElementById('empForm').reset();
+        document.getElementById('editEmpId').value = '';
+        document.getElementById('formModeTitle').innerText = "➕ Register Employee";
+        loadAdminData();
+    }
+
+    // Table data se row fetch karke forms fields back-fill karna modification ke liye
+    function editEmployee(id) {
+        const emp = employeesList.find(e => e._id === id);
+        document.getElementById('editEmpId').value = emp._id;
+        document.getElementById('empName').value = emp.name;
+        document.getElementById('empEmail').value = emp.email;
+        document.getElementById('empMobile').value = emp.mobile;
+        document.getElementById('empDept').value = emp.dept;
+        document.getElementById('empDesig').value = emp.designation;
+        document.getElementById('empSalary').value = emp.baseSalary;
+        document.getElementById('formModeTitle').innerText = "🔄 Update Employee Info";
+    }
+
+    // Record deletion function routing
+    async function deleteEmployee(id) {
+        if(confirm('Are you sure you want to delete this employee?')) {
+            await fetch(`${API}/employees/${id}`, {method: 'DELETE'});
+            loadAdminData();
+        }
+    }
+
+    // Payroll process calculation dispatch block
+    async function handleSalarySubmit(e) {
+        e.preventDefault();
+        const selectId = document.getElementById('salaryDropdown').value;
+        if(!selectId) return alert('Please add an employee first.');
+        const emp = employeesList.find(e => e._id === selectId);
+
+        const body = {
+            empId: emp._id,
+            empName: emp.name,
+            month: document.getElementById('salaryMonth').value,
+            allowances: document.getElementById('salaryAllow').value,
+            deductions: document.getElementById('salaryDeduct').value,
+            base: emp.baseSalary
+        };
+
+        const res = await fetch(API + '/salaries', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        alert(`Salary processed successfully! Net Total: ₹${data.amount}`);
+    }
+
+    // Employee specific personal history dataset query fetch
+    async function loadEmployeeData(name) {
+        const res = await fetch(`${API}/salaries/${name}`);
+        const history = await res.json();
+        const tbody = document.getElementById('personalTable');
+        tbody.innerHTML = '';
+        history.forEach(slip => {
+            tbody.innerHTML += `<tr>
+                <td><b>${slip.month}</b></td>
+                <td style="color:green; font-weight:bold;">₹${slip.totalPayout}</td>
+                <td>${new Date(slip.timestamp).toLocaleDateString()}</td>
+            </tr>`;
+        });
+    }
+
+    // Session cache flush for session breakdown
+    function logout() {
+        localStorage.clear();
+        checkUIState();
+    }
+
+    // Main initial execution trace lifecycle trigger
+    checkUIState();
+</script>
+</body>
+</html>

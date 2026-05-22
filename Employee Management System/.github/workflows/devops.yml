@@ -1,0 +1,42 @@
+name: Enterprise EMS CI Pipeline
+
+# Trigger tab hoga jab code 'main' branch par push hoga
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  Continuous-Integration:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. GitHub Server par aapka code download karna
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    # 2. Node.js Environment setup karna code testing ke liye
+    - name: Setup Node.js Environment
+      uses: actions/actions-setup-node@v4
+      with:
+        node-version: '18'
+
+    # 3. Backend Dependency scan aur validation check
+    - name: Install Backend Code Dependencies
+      run: |
+        cd backend
+        npm install
+
+    # 4. Security Audit (TRIVY SCANNER) - Yeh resume me bada impact dalega
+    - name: Run Trivy Security Scan on Repository
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        ignore-unfixed: true
+        format: 'table'
+        severity: 'CRITICAL,HIGH'
+
+    # 5. Automated Docker Build Check (Bina registry push ke verification)
+    - name: Verify Docker Container Build Integrity
+      run: |
+        docker build -t ems-backend-test:latest ./backend
+        docker build -t ems-frontend-test:latest ./frontend
