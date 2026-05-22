@@ -16,7 +16,7 @@ jobs:
 
     # 2. Node.js Environment setup karna code testing ke liye
     - name: Setup Node.js Environment
-      uses: actions/actions-setup-node@v4
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
 
